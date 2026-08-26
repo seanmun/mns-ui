@@ -351,6 +351,7 @@ export function ConfirmPanel({
 export function PageHeader({
   back,
   backLabel = 'Back',
+  backState,
   eyebrow,
   title,
   status,
@@ -358,6 +359,7 @@ export function PageHeader({
 }: {
   back?: string
   backLabel?: string
+  backState?: unknown
   eyebrow?: ReactNode
   title: ReactNode
   status?: ReactNode
@@ -366,7 +368,7 @@ export function PageHeader({
   return (
     <header className="mns-pagehead">
       {back ? (
-        <Link to={back} className="mns-pagehead__back">
+        <Link to={back} state={backState} className="mns-pagehead__back">
           &larr; {backLabel}
         </Link>
       ) : null}
