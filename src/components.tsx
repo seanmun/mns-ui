@@ -527,10 +527,15 @@ const MicIcon = () => (
 
 export function AssistantChat({
   send,
+  tts,
   suggestions = [],
   placeholder = 'Ask about your pools…',
 }: {
   send: (messages: AssistantMessage[]) => Promise<string>
+  // Optional custom voice (e.g. ElevenLabs via the hub's /api/tts):
+  // return audio, or null to decline. Any failure falls back to the
+  // free device voice, so an unconfigured voice never breaks speech.
+  tts?: (text: string) => Promise<Blob | null>
   suggestions?: string[]
   placeholder?: string
 }) {
@@ -541,6 +546,9 @@ export function AssistantChat({
   const [speakReplies, setSpeakReplies] = useState(false)
   const speakRef = useRef(false)
   speakRef.current = speakReplies
+  const ttsRef = useRef(tts)
+  ttsRef.current = tts
+  const audioRef = useRef<HTMLAudioElement | null>(null)
   const recognizerRef = useRef<SpeechRecognitionLike | null>(null)
   const [voiceSupported] = useState(() => typeof window !== 'undefined' && makeRecognizer() != null)
   const endRef = useRef<HTMLDivElement>(null)
@@ -567,7 +575,7 @@ export function AssistantChat({
     try {
       const reply = await send(next)
       setMessages([...next, { role: 'assistant', content: reply }])
-      if (speakRef.current) speakAloud(reply)
+      if (speakRef.current) void speakReply(reply)
     } catch (e) {
       setMessages([
         ...next,
@@ -582,6 +590,26 @@ export function AssistantChat({
     } finally {
       setBusy(false)
     }
+  }
+
+  const speakReply = async (text: string) => {
+    audioRef.current?.pause()
+    if (ttsRef.current) {
+      try {
+        const blob = await ttsRef.current(text)
+        if (blob) {
+          const url = URL.createObjectURL(blob)
+          const audio = new Audio(url)
+          audioRef.current = audio
+          audio.onended = () => URL.revokeObjectURL(url)
+          await audio.play()
+          return
+        }
+      } catch {
+        /* fall through to the device voice */
+      }
+    }
+    speakAloud(text)
   }
 
   const toggleMic = () => {
@@ -644,7 +672,10 @@ export function AssistantChat({
           aria-pressed={speakReplies}
           aria-label={speakReplies ? 'Stop reading replies aloud' : 'Read replies aloud'}
           onClick={() => {
-            if (speakReplies && 'speechSynthesis' in window) window.speechSynthesis.cancel()
+            if (speakReplies) {
+              if ('speechSynthesis' in window) window.speechSynthesis.cancel()
+              audioRef.current?.pause()
+            }
             setSpeakReplies((s) => !s)
           }}
         >
