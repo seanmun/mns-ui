@@ -473,6 +473,36 @@ export function ThemeToggle() {
   )
 }
 
+// ── MenuButton ──────────────────────────────────────────────────────
+// The header's ☰: opens whatever menu the app hangs off it (the league
+// menu). A 3rem target with a visible name for screen readers; the
+// expanded state rides aria-expanded, never color.
+export function MenuButton({
+  open,
+  onClick,
+  label = 'Menu',
+}: {
+  open: boolean
+  onClick: () => void
+  label?: string
+}) {
+  return (
+    <button
+      type="button"
+      className="mns-icon-btn"
+      aria-label={label}
+      aria-expanded={open}
+      aria-haspopup="dialog"
+      title={label}
+      onClick={onClick}
+    >
+      <svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M4 6h16M4 12h16M4 18h16" />
+      </svg>
+    </button>
+  )
+}
+
 // ── Sheet ───────────────────────────────────────────────────────────
 // The assistant layer: a bottom sheet OVER the current screen, so the
 // member never leaves where they are. Tap the grip or the backdrop to
@@ -484,6 +514,7 @@ export function Sheet({
   label,
   children,
   compact,
+  side = 'bottom',
 }: {
   open: boolean
   onClose: () => void
@@ -491,18 +522,30 @@ export function Sheet({
   children: ReactNode
   /** Size to content instead of the chat sheet's near-full height. */
   compact?: boolean
+  /** 'left': a full-height panel from the left edge, where a header's
+   *  ☰ sits — the menu opens beside the button that opened it. */
+  side?: 'bottom' | 'left'
 }) {
   if (!open) return null
   return (
-    <div className="mns-sheet-backdrop" onClick={onClose}>
+    <div className={'mns-sheet-backdrop' + (side === 'left' ? ' mns-sheet-backdrop--left' : '')} onClick={onClose}>
       <div
-        className={'mns-sheet' + (compact ? ' mns-sheet--compact' : '')}
+        className={'mns-sheet' + (compact ? ' mns-sheet--compact' : '') + (side === 'left' ? ' mns-sheet--left' : '')}
         role="dialog"
         aria-modal="true"
         aria-label={label}
         onClick={(e) => e.stopPropagation()}
       >
-        <button type="button" className="mns-sheet__grip" aria-label="Close" onClick={onClose} />
+        {side === 'left' ? (
+          <button type="button" className="mns-sheet__close" onClick={onClose}>
+            <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M18 6 6 18M6 6l12 12" />
+            </svg>
+            Close
+          </button>
+        ) : (
+          <button type="button" className="mns-sheet__grip" aria-label="Close" onClick={onClose} />
+        )}
         {children}
       </div>
     </div>

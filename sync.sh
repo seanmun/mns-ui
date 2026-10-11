@@ -4,7 +4,8 @@
 # the token block the apps already shared — but enforced.
 set -euo pipefail
 cd "$(dirname "$0")"
-APPS="mns-fantasy golf-mns-fantasy ncaa-mns-fantasy bball-mns-fantasy nfl-mns-fantasy"
+# Name apps to sync only those (./sync.sh mns-fantasy); none = all.
+APPS="${*:-mns-fantasy golf-mns-fantasy ncaa-mns-fantasy bball-mns-fantasy nfl-mns-fantasy}"
 for app in $APPS; do
   dest="../$app/src/ui"
   mkdir -p "$dest"
