@@ -3,7 +3,8 @@
 // from the Phase 0 best-in-class picks: hub's forms, ncaa's cards and
 // countdown, golf's empty state, nfl's tab bar / stepper / hero.
 
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import { Link, useLocation } from 'react-router-dom'
 import { useTheme } from './theme'
 
@@ -508,6 +509,12 @@ export function MenuButton({
 // member never leaves where they are. Tap the grip or the backdrop to
 // dismiss. Deliberately no drag physics in v1 — the grip is a labeled
 // 3rem+ target, which this audience can actually find.
+//
+// Rendered through a portal (Nov 6 2026): a sheet opened from a header
+// sat inside the header's backdrop-blur, which pins position:fixed to
+// the 64px header and its z-index layer — the notifications opened
+// behind the page. It mounts on the nearest [data-mns-root] (a game's
+// root, so its scoped tokens still apply), else <body>.
 export function Sheet({
   open,
   onClose,
@@ -526,7 +533,32 @@ export function Sheet({
    *  ☰ sits — the menu opens beside the button that opened it. */
   side?: 'bottom' | 'left'
 }) {
-  if (!open) return null
+  const anchor = useRef<HTMLSpanElement>(null)
+  const [host, setHost] = useState<Element | null>(null)
+  useLayoutEffect(() => {
+    if (open) setHost(anchor.current?.closest('[data-mns-root]') ?? document.body)
+  }, [open])
+  return (
+    <>
+      <span ref={anchor} hidden />
+      {open && host ? createPortal(<SheetPanel onClose={onClose} label={label} compact={compact} side={side}>{children}</SheetPanel>, host) : null}
+    </>
+  )
+}
+
+function SheetPanel({
+  onClose,
+  label,
+  children,
+  compact,
+  side,
+}: {
+  onClose: () => void
+  label: string
+  children: ReactNode
+  compact?: boolean
+  side: 'bottom' | 'left'
+}) {
   return (
     <div className={'mns-sheet-backdrop' + (side === 'left' ? ' mns-sheet-backdrop--left' : '')} onClick={onClose}>
       <div
